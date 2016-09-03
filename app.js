@@ -2,6 +2,7 @@
 var mqtt      = require("mqtt");
 var connected = [];
 
+
 function listenForMessage () {
      var state = "x"
 
@@ -31,12 +32,13 @@ function listenForMessage () {
            client.on('connect', function () {
               // subscribe to the topic
               client.subscribe(args.mqtt_topic)
-              //console.log("waiting "+ args.mqtt_topic);
+              console.log("waiting "+ args.mqtt_topic);
               // Wait for any message
               client.on('message',function(topic,message, packet) {
-                 //console.log("received '" + message.toString() + "' on '" + topic + "'");
+              //  console.log("received '" + message.toString() + "' on '" + topic + "'");
                  // Fill the state and pass it as a parameter to the flow manager
                  state = topic
+				 LogEntryPoint(topic, message);
                  // trigger the flow, it will end up in the first if above
                  Homey.manager('flow').trigger('got_mqtt_message', {
                     mqtt_message: message.toString()
@@ -46,6 +48,47 @@ function listenForMessage () {
        };
    });
 }
+function LogEntryPoint(topic, message){
+
+	console.log("received '" + message.toString() + "' on '" + topic + "'");
+	
+		   // Get a log, made by this app
+		  var logs = []; 
+	
+			Homey.manager('insights').getLog( topic, function( err , logs){
+        		//if( err ) return console.error(err);
+
+			if (logs !==null ){	
+				//console.log("Log found");
+				
+				
+			}else
+			{
+				console.log("Log not found, creating");
+				Homey.manager('insights').createLog( topic, {
+    				label: {
+        			en: topic
+    						},
+   			 		type: 'number',
+    				units: {
+        				en: ''
+    					},
+    				decimals: 2,
+    				chart: 'stepLine' // prefered, or default chart type. can be: line, area, stepLine, column, spline, splineArea, scatter
+						}, function callback(err , success){
+   			 			if( err ) return console.error(err);
+						})
+		
+			}
+		   })
+	
+		   	 //.toString()
+			 Homey.manager('insights').createEntry( topic, Number(message), new Date(), function(err, success){
+                    if( err ) return Homey.error(err);
+                });
+		  	    
+	}
+
 
 function getArgs () {
 	 // Give all the triggers a kick to retrieve the arg(topic) defined on the trigger.
@@ -64,7 +107,7 @@ function listenForAction () {
       var client  = mqtt.connect('mqtt://' + Homey.manager('settings').get('url'));
       client.on('connect', function () {
          client.publish(args.mqtt_topic, args.mqtt_message);
-         //console.log("send " + args.mqtt_message + " on topic " + args.mqtt_topic);
+         console.log("send " + args.mqtt_message + " on topic " + args.mqtt_topic);
          client.end();
       });
       callback( null, true ); // we've fired successfully
