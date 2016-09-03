@@ -81,12 +81,18 @@ function LogEntryPoint(topic, message){
 		
 			}
 		   })
-	
-		   	 //.toString()
+			
+			
+			if (isNaN(message)){
+				//is not a number
+				console.log("Message rejected from Log,  not numeric");
+			}else
+			{
+				//is  a number
 			 Homey.manager('insights').createEntry( topic, Number(message), new Date(), function(err, success){
                     if( err ) return Homey.error(err);
                 });
-		  	    
+		  	    }
 	}
 
 
